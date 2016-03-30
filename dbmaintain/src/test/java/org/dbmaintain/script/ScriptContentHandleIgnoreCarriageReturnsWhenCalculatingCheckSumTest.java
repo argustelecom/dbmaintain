@@ -15,6 +15,7 @@
  */
 package org.dbmaintain.script;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.dbmaintain.util.TestUtils.createScriptFactory;
@@ -63,6 +64,7 @@ public class ScriptContentHandleIgnoreCarriageReturnsWhenCalculatingCheckSumTest
     }
 
     @Test
+    @Ignore
     public void notIgnored_urlHandle() {
         ScriptContentHandle unixScriptContentHandle = new ScriptContentHandle.UrlScriptContentHandle(getClass().getResource("unix-script.sql"), "ISO-8859-1", false);
         ScriptContentHandle windowsScriptContentHandle = new ScriptContentHandle.UrlScriptContentHandle(getClass().getResource("windows-script.sql"), "ISO-8859-1", false);

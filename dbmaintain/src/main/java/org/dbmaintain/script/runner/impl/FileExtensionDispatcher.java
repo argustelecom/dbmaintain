@@ -18,11 +18,13 @@
 package org.dbmaintain.script.runner.impl;
 
 import java.util.Map;
+
 import org.dbmaintain.database.Databases;
 import org.dbmaintain.database.SQLHandler;
 import org.dbmaintain.script.Script;
 import org.dbmaintain.script.parser.ScriptParserFactory;
 import org.dbmaintain.script.runner.ScriptRunner;
+import org.dbmaintain.script.runner.SqlPlusScriptRunnerFactory;
 
 /**
  * Implementation of a script runner which calls other script runner depending on the file name suffix
@@ -57,8 +59,9 @@ public class FileExtensionDispatcher implements ScriptRunner {
             ScriptRunner runner = new SqlLoaderScriptRunner(databases, sqlLoaderCommand);
             runner.execute(script);
         }
-        else if (script.getFileName().matches("^.*\\.sql$")) {
-            ScriptRunner runner = new JdbcScriptRunner(databaseDialectScriptParserFactoryMap, databases, sqlHandler);
+        else if (script.getFileName().matches("^.*\\.(sql|pkb|pks|fnc|prc|trg|typ|tpb|vw)$")) {
+        	
+            ScriptRunner runner = new JdbcScriptRunner(databaseDialectScriptParserFactoryMap, databases, sqlHandler); 
             runner.execute(script);
         }
         else {
