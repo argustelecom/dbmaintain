@@ -169,7 +169,8 @@ public class ScriptUpdatesAnalyzer {
             if (scriptWithHighestScriptIndex == null || script.compareTo(scriptWithHighestScriptIndex) > 0) {
                 registerRegularScriptUpdate(HIGHER_INDEX_SCRIPT_ADDED, script);
             } else {
-                if (script.isPatchScript()) {
+            	// ARGUS fix. add or statement. cause it's LOWER INDEX is normal ) 
+                if (script.isPatchScript() || allowOutOfSequenceExecutionOfPatchScripts ) {
                     if (allowOutOfSequenceExecutionOfPatchScripts) {
                         registerRegularlyAddedPatchScript(LOWER_INDEX_PATCH_SCRIPT_ADDED, script);
                     } else {

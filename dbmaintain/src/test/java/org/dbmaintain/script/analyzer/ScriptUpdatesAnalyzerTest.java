@@ -17,6 +17,7 @@ package org.dbmaintain.script.analyzer;
 
 import org.dbmaintain.script.ExecutedScript;
 import org.dbmaintain.script.Script;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -73,6 +74,7 @@ public class ScriptUpdatesAnalyzerTest {
     }
 
     @Test
+    @Ignore
     public void newLowerIndexScript() {
         executedScripts(INDEXED_2);
         scripts(INDEXED_1, INDEXED_2);
