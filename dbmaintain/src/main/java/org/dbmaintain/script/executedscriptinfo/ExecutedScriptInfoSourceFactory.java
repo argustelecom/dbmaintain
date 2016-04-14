@@ -51,6 +51,16 @@ public class ExecutedScriptInfoSourceFactory extends FactoryWithDatabase<Execute
         int executedAtColumnSize = PropertyUtils.getInt(PROPERTY_EXECUTED_AT_COLUMN_SIZE, getConfiguration());
         String succeededColumnName = defaultDatabase.toCorrectCaseIdentifier(getString(PROPERTY_SUCCEEDED_COLUMN_NAME, getConfiguration()));
         DateFormat timestampFormat = new SimpleDateFormat(getString(PROPERTY_TIMESTAMP_FORMAT, getConfiguration()));
+
+        //ARGUS. additional parameter. used to find out in what package script installed. packageCode set in *.properties file
+        String packageCodeColumnName = defaultDatabase.toCorrectCaseIdentifier(getString(PROPERTY_PACKAGE_CODE_COLUMN_NAME, "", getConfiguration()));
+        int packageCodeColumnSize = PropertyUtils.getInt(PROPERTY_PACKAGE_CODE_COLUMN_SIZE, 0, getConfiguration());
+        String packageCode = PropertyUtils.getString(PROPERTY_PACKAGE_CODE, "default", getConfiguration());
+
+        //ARGUS. additional parameter. when exist, used to store sources of executed script. Useful to resolve issues "checksum changed" 
+        String scriptSourceColumnName = defaultDatabase.toCorrectCaseIdentifier(getString(PROPERTY_SCRIPT_SOURCE_COLUMN_NAME, "", getConfiguration()));
+        int scriptSourceColumnSize = PropertyUtils.getInt(PROPERTY_SCRIPT_SOURCE_COLUMN_SIZE, 0, getConfiguration());
+
         String scriptIndexRegexp = getString(PROPERTY_SCRIPT_INDEX_REGEXP, getConfiguration());
         String targetDatabaseRegexp = getString(PROPERTY_SCRIPT_TARGETDATABASE_REGEXP, getConfiguration());
         String qualifierRegexp = getString(PROPERTY_SCRIPT_QUALIFIER_REGEXP, getConfiguration());
@@ -63,7 +73,9 @@ public class ExecutedScriptInfoSourceFactory extends FactoryWithDatabase<Execute
         ScriptFactory scriptFactory = new ScriptFactory(scriptIndexRegexp, targetDatabaseRegexp, qualifierRegexp, registeredQualifiers, patchQualifiers, preProcessingScriptsDirName, postProcessingScriptsDirName, baselineRevision);
         return new DefaultExecutedScriptInfoSource(autoCreateExecutedScriptsTable, executedScriptsTableName, fileNameColumnName, fileNameColumnSize,
                 fileLastModifiedAtColumnName, checksumColumnName, checksumColumnSize,
-                executedAtColumnName, executedAtColumnSize, succeededColumnName, timestampFormat, defaultDatabase,
+                executedAtColumnName, executedAtColumnSize, succeededColumnName, timestampFormat,
+                packageCodeColumnName, packageCodeColumnSize, packageCode, scriptSourceColumnName, scriptSourceColumnSize,
+                defaultDatabase,
                 getSqlHandler(), scriptFactory);
     }
 

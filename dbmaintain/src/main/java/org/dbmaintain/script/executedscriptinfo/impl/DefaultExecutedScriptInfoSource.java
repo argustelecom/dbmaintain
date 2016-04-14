@@ -69,6 +69,15 @@ public class DefaultExecutedScriptInfoSource implements ExecutedScriptInfoSource
     protected boolean autoCreateExecutedScriptsTable;
     /* Format of the contents of the executed_at column */
     protected DateFormat timestampFormat;
+    
+    protected String packageCodeColumnName;
+    protected int packageCodeColumnSize;
+    protected String packageCode;
+    protected boolean usePackageCodeColumn = false;
+    protected String scriptSourceColumnName;
+    protected int scriptSourceColumnSize;  
+    protected boolean useScriptSourceColumn = false;
+    
     /* True if the scripts table was checked and was valid */
     protected boolean validExecutedScriptsTable = false;
 
@@ -77,6 +86,7 @@ public class DefaultExecutedScriptInfoSource implements ExecutedScriptInfoSource
     public DefaultExecutedScriptInfoSource(boolean autoCreateExecutedScriptsTable, String executedScriptsTableName, String fileNameColumnName,
                                            int fileNameColumnSize, String fileLastModifiedAtColumnName, String checksumColumnName, int checksumColumnSize,
                                            String executedAtColumnName, int executedAtColumnSize, String succeededColumnName, DateFormat timestampFormat,
+                                           String packageCodeColumnName, int packageCodeColumnSize, String packageCode, String scriptSourceColumnName, int scriptSourceColumnSize,
                                            Database defaultSupport, SQLHandler sqlHandler, ScriptFactory scriptFactory) {
 
         this.defaultDatabase = defaultSupport;
@@ -91,6 +101,14 @@ public class DefaultExecutedScriptInfoSource implements ExecutedScriptInfoSource
         this.executedAtColumnName = defaultDatabase.toCorrectCaseIdentifier(executedAtColumnName);
         this.executedAtColumnSize = executedAtColumnSize;
         this.succeededColumnName = defaultDatabase.toCorrectCaseIdentifier(succeededColumnName);
+        this.packageCodeColumnName = defaultDatabase.toCorrectCaseIdentifier(packageCodeColumnName);
+        this.packageCodeColumnSize = packageCodeColumnSize;
+        this.packageCode = packageCode;
+        this.usePackageCodeColumn = (this.packageCodeColumnName != "") && (this.packageCodeColumnSize > 0);
+        this.scriptSourceColumnName = defaultDatabase.toCorrectCaseIdentifier(scriptSourceColumnName);
+        this.scriptSourceColumnSize = scriptSourceColumnSize;
+        this.useScriptSourceColumn = (this.scriptSourceColumnName != "") && (this.scriptSourceColumnSize > 0);
+        
         this.timestampFormat = timestampFormat;
         this.scriptFactory = scriptFactory;
     }
@@ -183,12 +201,18 @@ public class DefaultExecutedScriptInfoSource implements ExecutedScriptInfoSource
         getExecutedScripts().add(executedScript);
 
         String executedAt = timestampFormat.format(executedScript.getExecutedAt());
+        
         String insertSql = "insert into " + getQualifiedExecutedScriptsTableName() +
                 " (" + fileNameColumnName + ", " + fileLastModifiedAtColumnName + ", " + checksumColumnName + ", " +
-                executedAtColumnName + ", " + succeededColumnName + ") values ('" + executedScript.getScript().getFileName() +
+                executedAtColumnName + ", " + succeededColumnName + (usePackageCodeColumn ? ", " + packageCodeColumnName : "" ) +
+                (useScriptSourceColumn ? ", " + scriptSourceColumnName : "" )
+                + ") values ('" + executedScript.getScript().getFileName() +
                 "', " + executedScript.getScript().getFileLastModifiedAt() + ", '" +
-                executedScript.getScript().getCheckSum() + "', '" + executedAt + "', " + (executedScript.isSuccessful() ? "1" : "0") + ")";
+                executedScript.getScript().getCheckSum() + "', '" + executedAt + "', " + (executedScript.isSuccessful() ? "1" : "0") + 
+                (usePackageCodeColumn ? ", '" + packageCode +"'" : "" ) + 
+                (useScriptSourceColumn ? ", '" + executedScript.getScript().toString().substring(0, Math.min(executedScript.getScript().toString().length(), scriptSourceColumnSize) ) +"'" : "" ) +")";
         sqlHandler.executeUpdateAndCommit(insertSql, defaultDatabase.getDataSource());
+        
     }
 
 
@@ -207,6 +231,8 @@ public class DefaultExecutedScriptInfoSource implements ExecutedScriptInfoSource
                 " set " + checksumColumnName + " = '" + executedScript.getScript().getCheckSum() + "', " +
                 fileLastModifiedAtColumnName + " = " + executedScript.getScript().getFileLastModifiedAt() + ", " +
                 executedAtColumnName + " = '" + executedAt + "', " +
+                (usePackageCodeColumn ? packageCodeColumnName + " = '" + packageCode +"', " : "" ) + 
+                (useScriptSourceColumn ? scriptSourceColumnName + " = '" + executedScript.getScript().toString().substring(0, Math.min(executedScript.getScript().toString().length(), scriptSourceColumnSize) ) +"', " : "" ) +                
                 succeededColumnName + " = " + (executedScript.isSuccessful() ? "1" : "0") +
                 " where " + fileNameColumnName + " = '" + executedScript.getScript().getFileName() + "'";
         sqlHandler.executeUpdateAndCommit(updateSql, defaultDatabase.getDataSource());
@@ -358,9 +384,14 @@ public class DefaultExecutedScriptInfoSource implements ExecutedScriptInfoSource
         if (tableNames.contains(executedScriptsTableName)) {
             // Check columns of version table
             Set<String> columnNames = defaultDatabase.getColumnNames(defaultDatabase.getDefaultSchemaName(), executedScriptsTableName);
-            if (columnNames.contains(fileNameColumnName) && columnNames.contains(fileLastModifiedAtColumnName)
-                    && columnNames.contains(checksumColumnName) && columnNames.contains(executedAtColumnName)
-                    && columnNames.contains(succeededColumnName)) {
+            if (columnNames.contains(fileNameColumnName) && 
+            	columnNames.contains(fileLastModifiedAtColumnName) && 
+            	columnNames.contains(checksumColumnName) && 
+            	columnNames.contains(executedAtColumnName) && 
+            	columnNames.contains(succeededColumnName) &&
+            	(columnNames.contains(packageCodeColumnName) || ! usePackageCodeColumn) &&
+            	(columnNames.contains(scriptSourceColumnName) || ! useScriptSourceColumn)
+               ) {
                 return true;
             }
         }
@@ -393,7 +424,9 @@ public class DefaultExecutedScriptInfoSource implements ExecutedScriptInfoSource
                 fileLastModifiedAtColumnName + " " + defaultDatabase.getLongDataType() + ", " +
                 checksumColumnName + " " + defaultDatabase.getTextDataType(checksumColumnSize) + ", " +
                 executedAtColumnName + " " + defaultDatabase.getTextDataType(executedAtColumnSize) + ", " +
-                succeededColumnName + " " + longDataType + " )";
+                succeededColumnName + " " + longDataType + 
+                (usePackageCodeColumn ? ", " + packageCodeColumnName + " " + defaultDatabase.getTextDataType(packageCodeColumnSize) : "") +
+                (useScriptSourceColumn ? ", " + scriptSourceColumnName + " " + defaultDatabase.getTextDataType(scriptSourceColumnSize) : "") + " )";
     }
 
     protected String getQualifiedExecutedScriptsTableName() {
