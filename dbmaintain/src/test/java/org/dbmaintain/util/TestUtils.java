@@ -79,7 +79,7 @@ public abstract class TestUtils {
                 asSet(new Qualifier("patch")), "preprocessing", "postprocessing", baselineRevision);
         return new DefaultExecutedScriptInfoSource(autoCreateExecutedScriptsTable,
                 "dbmaintain_scripts", "file_name", 150, "file_last_modified_at", "checksum", 50, "executed_at", 50, "succeeded",
-                new SimpleDateFormat("dd/MM/yyyy"), database, new DefaultSQLHandler(), scriptFactory);
+                new SimpleDateFormat("dd/MM/yyyy"), "", 0, "", "", 0, database, new DefaultSQLHandler(), scriptFactory);
     }
 
     public static Script createScript(String fileName) {

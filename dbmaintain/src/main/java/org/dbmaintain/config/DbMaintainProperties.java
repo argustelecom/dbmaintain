@@ -267,6 +267,15 @@ public class DbMaintainProperties {
     /* The key of the property that specifies the column in which is stored whether the last update succeeded. */
     public static final String PROPERTY_SUCCEEDED_COLUMN_NAME = "dbMaintainer.succeededColumnName";
 
+    /* The key of the property that specifies the column in which is stored package code. */
+    public static final String PROPERTY_PACKAGE_CODE_COLUMN_NAME = "dbMaintainer.packageCodeColumnName";
+    public static final String PROPERTY_PACKAGE_CODE_COLUMN_SIZE = "dbMaintainer.packageCodeColumnSize";
+    public static final String PROPERTY_PACKAGE_CODE = "dbMaintainer.packageCode";
+
+    /* The key of the property that specifies the column in which is stored script source, or part of it. */
+    public static final String PROPERTY_SCRIPT_SOURCE_COLUMN_NAME = "dbMaintainer.scriptSourceColumnName";
+    public static final String PROPERTY_SCRIPT_SOURCE_COLUMN_SIZE = "dbMaintainer.scriptSourceColumnSize";
+    		
     /* The key of the property that specifies whether the executed scripts table should be created automatically. */
     public static final String PROPERTY_AUTO_CREATE_DBMAINTAIN_SCRIPTS_TABLE = "dbMaintainer.autoCreateDbMaintainScriptsTable";
 
