@@ -335,6 +335,9 @@ public class DbMaintainProperties {
     /* Preprocessing scripts */
     public static final String PROPERTY_PREPROCESSINGSCRIPT_DIRNAME = "dbMaintainer.preProcessingScript.directoryName";
 
+    /* Load XML Runner Param */
+    public static final String PROPERTY_LOAD_XML_FUNCTION = "dbMaintainer.LoadXMLRunner.function";
+    
     /**
      * Private constructor to prevent instantiation
      */

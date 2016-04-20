@@ -17,7 +17,14 @@
 
 package org.dbmaintain.script.runner.impl;
 
+import static org.dbmaintain.config.DbMaintainProperties.PROPERTY_CHMOD_COMMAND;
+import static org.dbmaintain.config.DbMaintainProperties.PROPERTY_LOAD_XML_FUNCTION;
+import static org.dbmaintain.config.DbMaintainProperties.PROPERTY_SQL_LOADER_COMMAND;
+import static org.dbmaintain.config.DbMaintainProperties.PROPERTY_SQL_PLUS_COMMAND;
+
 import java.util.Map;
+import java.util.Properties;
+import org.dbmaintain.config.PropertyUtils;
 import org.dbmaintain.database.Databases;
 import org.dbmaintain.database.SQLHandler;
 import org.dbmaintain.script.Script;
@@ -28,43 +35,51 @@ import org.dbmaintain.script.runner.ScriptRunner;
  * Implementation of a script runner which calls other script runner depending on the file name suffix
  * 
  * @author Christian Liebhardt
+ * @author ARGUS
  */
 public class FileExtensionDispatcher implements ScriptRunner {
     
     protected Databases databases;
     protected SQLHandler sqlHandler;
+    protected Properties configuration;
     protected String sqlLoaderCommand;
     protected String sqlPlusCommand;
     protected String chmodCommand;
+    protected String loadXMLFunction;
     protected Map<String, ScriptParserFactory> databaseDialectScriptParserFactoryMap;
     
     public FileExtensionDispatcher(Databases databases, 
             SQLHandler sqlHandler,
-            String sqlLoaderCommand,
-            String sqlPlusCommand,
-            String chmodCommand,
+            final Properties configuration,
             Map<String, ScriptParserFactory> databaseDialectScriptParserFactoryMap) {
         this.databases = databases;
         this.sqlHandler = sqlHandler;
-        this.sqlLoaderCommand = sqlLoaderCommand;
-        this.sqlPlusCommand = sqlPlusCommand;
-        this.chmodCommand = chmodCommand;
+        this.configuration = configuration;
+        this.sqlLoaderCommand = PropertyUtils.getString(PROPERTY_SQL_LOADER_COMMAND, configuration);
+        this.sqlPlusCommand = PropertyUtils.getString(PROPERTY_SQL_PLUS_COMMAND, configuration);
+        this.chmodCommand = PropertyUtils.getString(PROPERTY_CHMOD_COMMAND, configuration);
+        this.loadXMLFunction = PropertyUtils.getString(PROPERTY_LOAD_XML_FUNCTION, configuration);
         this.databaseDialectScriptParserFactoryMap = databaseDialectScriptParserFactoryMap;
     }
 
     public void execute(Script script) {
+    	ScriptRunner runner;
         if (script.getFileName().matches("^.*\\.(ldr|ctl)$")) {
-            ScriptRunner runner = new SqlLoaderScriptRunner(databases, sqlLoaderCommand);
-            runner.execute(script);
+            runner = new SqlLoaderScriptRunner(databases, sqlLoaderCommand);
         }
-        else if (script.getFileName().matches("^.*\\.sql$")) {
-            ScriptRunner runner = new JdbcScriptRunner(databaseDialectScriptParserFactoryMap, databases, sqlHandler);
-            runner.execute(script);
+        else if (script.getFileName().matches("^.*\\.(sh)$")) {
+            runner = new ShellScriptRunner(databases, chmodCommand);
+        }
+        else if (script.getFileName().matches("^.*\\.(sqlplus)$")) {
+        	runner = new SqlPlusScriptRunner(databases, configuration, sqlPlusCommand);
+        }
+        else if (script.getFileName().matches("^.*\\.(xml)$")) {
+        	runner = new LoadXMLScriptRunner(databases, sqlHandler, loadXMLFunction);
         }
         else {
-            ScriptRunner runner = new ShellScriptRunner(databases, chmodCommand);
-            runner.execute(script);
+            runner = new JdbcScriptRunner(databaseDialectScriptParserFactoryMap, databases, sqlHandler); 
         }
+        runner.execute(script);
     }
 
     public void initialize() {

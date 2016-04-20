@@ -33,10 +33,7 @@ import static org.dbmaintain.config.DbMaintainProperties.PROPERTY_CHMOD_COMMAND;
 public class FileExtensionDispatcherFactory extends FactoryWithDatabase<ScriptRunner> {
     
     public ScriptRunner createInstance() {
-        String sqlLoaderCommand = PropertyUtils.getString(PROPERTY_SQL_LOADER_COMMAND, getConfiguration());
-        String sqlPlusCommand = PropertyUtils.getString(PROPERTY_SQL_PLUS_COMMAND, getConfiguration());
-        String chmodCommand = PropertyUtils.getString(PROPERTY_CHMOD_COMMAND, getConfiguration());
         Map<String, ScriptParserFactory> databaseDialectScriptParserFactoryMap = factoryWithDatabaseContext.getDatabaseDialectScriptParserFactoryMap();
-        return new FileExtensionDispatcher(getDatabases(), getSqlHandler(), sqlLoaderCommand, sqlPlusCommand, chmodCommand, databaseDialectScriptParserFactoryMap);
+        return new FileExtensionDispatcher(getDatabases(), getSqlHandler(),  getConfiguration(), databaseDialectScriptParserFactoryMap);
     }
 }
