@@ -18,6 +18,8 @@ package org.dbmaintain.database;
 import org.dbmaintain.util.DbMaintainException;
 
 import javax.sql.DataSource;
+
+import java.sql.Connection;
 import java.util.Set;
 
 public interface SQLHandler {
@@ -109,4 +111,5 @@ public interface SQLHandler {
      */
     void closeAllConnections();
 
+    public Connection getConnection(DataSource dataSource);
 }

@@ -1022,6 +1022,7 @@ public class DbMaintainIntegrationTest {
         configuration.put(PROPERTY_USESCRIPTFILELASTMODIFICATIONDATES, "false");
         configuration.put(PROPERTY_FROM_SCRATCH_ENABLED, "false");
         configuration.put(PROPERTY_QUALIFIERS, "special,q1,q2");
+        configuration.put("dbMaintainer.LoadXMLRunner.function", "load_xml");
 
         SQLHandler sqlHandler = new DefaultSQLHandler();
         DataSourceFactory dataSourceFactory = new SimpleDataSourceFactory();

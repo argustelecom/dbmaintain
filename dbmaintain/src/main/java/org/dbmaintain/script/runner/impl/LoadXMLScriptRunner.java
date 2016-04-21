@@ -16,7 +16,6 @@
 package org.dbmaintain.script.runner.impl;
 
 import java.io.File;
-import java.io.Reader;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -30,6 +29,7 @@ import org.dbmaintain.database.Database;
 import org.dbmaintain.database.Databases;
 import org.dbmaintain.database.SQLHandler;
 import org.dbmaintain.script.Script;
+import org.dbmaintain.util.DbMaintainException;
 
 /**
  * Implementation of a script runner that load XML to Oracle.
@@ -53,33 +53,35 @@ public class LoadXMLScriptRunner extends BaseNativeScriptRunner {
     }
     @Override
     public void execute(Script script) {
-    	// TODO Auto-generated method stub
     	scriptPath = script.getFileName();
+    	encoding = script.getScriptContentHandle().getEncoding();
     	super.execute(script);
     }
 	@Override
 	protected void executeScript(File scriptFile, Database targetDatabase)
 			throws Exception {
-		// TODO Auto-generated method stub
     	logger.debug("loading XML file with " + loadXMLFunction);
     	
     	String xml = FileUtils.readFileToString(scriptFile, encoding);
     	DataSource dataSource = targetDatabase.getDataSource();
-    	Connection connection = dataSource.getConnection();
-    	String sql = "CALL " + loadXMLFunction + "('"+ scriptPath + "', ? )";
-        PreparedStatement ps = connection.prepareStatement(sql);
-        Clob clobxml = connection.createClob();
-        clobxml.setString(1, xml);
-        ps.setClob(1, clobxml);
-        ps.execute();
-        connection.commit();
-        clobxml.free();
-        
-    	//Here we need to call procedure with CLOB param (stored in callsql)
-    	//like: call argus_sys.upd$load_xml(file_path, file_data);
-    	// file_path - VARCHAR - relative path to loading file (like repeatable/xml/myfile.xml)
-    	// file_data - CLOB
-		
+    	Connection connection = sqlHandler.getConnection(dataSource);
+
+    	Clob clobxml = connection.createClob();
+    	try {
+    		clobxml.setString(1, xml);
+    		String sql = "CALL " + loadXMLFunction + "( ? , ? )";
+    		PreparedStatement ps = connection.prepareStatement(sql);
+    		ps.setString(1, scriptPath);
+    		ps.setClob(2, clobxml);
+    		ps.execute();
+    		connection.commit();
+        } catch (DbMaintainException e) {
+        	connection.rollback();
+        	throw e;
+        }
+    	finally {
+        	clobxml.free();
+        }    			
 	}
 
 }

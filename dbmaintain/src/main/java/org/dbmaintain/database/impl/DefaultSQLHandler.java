@@ -288,7 +288,7 @@ public class DefaultSQLHandler implements SQLHandler {
      * @param dataSource provides access to the database
      * @return a Connection to the database for the given DataSource.
      */
-    protected Connection getConnection(DataSource dataSource) {
+    public Connection getConnection(DataSource dataSource) {
         Connection connection = cachedConnections.get(dataSource);
         if (connection == null) {
             try {

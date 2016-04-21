@@ -17,14 +17,11 @@
 
 package org.dbmaintain.script.runner;
 
-import org.dbmaintain.script.parser.ScriptParserFactory;
 import java.util.Map;
+
 import org.dbmaintain.config.FactoryWithDatabase;
-import org.dbmaintain.config.PropertyUtils;
+import org.dbmaintain.script.parser.ScriptParserFactory;
 import org.dbmaintain.script.runner.impl.FileExtensionDispatcher;
-import static org.dbmaintain.config.DbMaintainProperties.PROPERTY_SQL_PLUS_COMMAND;
-import static org.dbmaintain.config.DbMaintainProperties.PROPERTY_SQL_LOADER_COMMAND;
-import static org.dbmaintain.config.DbMaintainProperties.PROPERTY_CHMOD_COMMAND;
 
 /**
  *
