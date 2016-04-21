@@ -67,10 +67,10 @@ public class LoadXMLScriptRunner extends BaseNativeScriptRunner {
     	Connection connection = sqlHandler.getConnection(dataSource);
 
     	Clob clobxml = connection.createClob();
+		String sql = "CALL " + loadXMLFunction + "( ? , ? )";
+		PreparedStatement ps = connection.prepareStatement(sql);
     	try {
     		clobxml.setString(1, xml);
-    		String sql = "CALL " + loadXMLFunction + "( ? , ? )";
-    		PreparedStatement ps = connection.prepareStatement(sql);
     		ps.setString(1, scriptPath);
     		ps.setClob(2, clobxml);
     		ps.execute();
@@ -81,6 +81,7 @@ public class LoadXMLScriptRunner extends BaseNativeScriptRunner {
         }
     	finally {
         	clobxml.free();
+    		ps.close();
         }    			
 	}
 
