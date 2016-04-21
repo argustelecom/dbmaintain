@@ -27,6 +27,7 @@ import org.dbmaintain.script.runner.ScriptRunner;
 import org.dbmaintain.util.DbMaintainException;
 
 import javax.sql.DataSource;
+
 import java.io.Reader;
 import java.util.Map;
 
@@ -89,7 +90,7 @@ public class JdbcScriptRunner implements ScriptRunner {
         DataSource dataSource = targetDatabase.getDataSource();
         try {
             sqlHandler.startTransaction(dataSource);
-
+            
             String statement;
             while ((statement = scriptParser.getNextStatement()) != null) {
                 sqlHandler.execute(statement, dataSource);
