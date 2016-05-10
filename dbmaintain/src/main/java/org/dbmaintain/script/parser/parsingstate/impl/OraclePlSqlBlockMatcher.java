@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
  */
 public class OraclePlSqlBlockMatcher implements PlSqlBlockMatcher {
 
-    private static final Pattern PL_SQL_PATTERN = Pattern.compile("^(CREATE (OR REPLACE )?(PACKAGE|LIBRARY|FUNCTION|PROCEDURE|TRIGGER|TYPE)|DECLARE|BEGIN)");
+    private static final Pattern PL_SQL_PATTERN = Pattern.compile("^(CREATE (OR REPLACE )?(AND RESOLVE )?(FORCE )?(PACKAGE|LIBRARY|FUNCTION|PROCEDURE|TRIGGER|TYPE|JAVA SOURCE)|DECLARE|BEGIN)");
 
     public boolean isStartOfPlSqlBlock(StringBuilder statementWithoutCommentsOrWhitespace) {
         return PL_SQL_PATTERN.matcher(statementWithoutCommentsOrWhitespace).matches();

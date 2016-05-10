@@ -58,9 +58,11 @@ abstract public class ScriptLocation {
     /* If true, carriage return chars will be ignored when calculating check sums */
     protected boolean ignoreCarriageReturnsWhenCalculatingCheckSum;
     protected ScriptFactory scriptFactory;
+    
+    private Properties OverrideProperties;
 
 
-    /**
+	/**
      * @param scripts                     The scripts contained in the container, not null
      * @param scriptEncoding              Encoding used to read the contents of the script, not null
      * @param preProcessingScriptDirName  The directory name that contains re processing scripts, may be null
@@ -113,8 +115,9 @@ abstract public class ScriptLocation {
         this.baseLineRevision = defaultBaseLineRevision;
         this.ignoreCarriageReturnsWhenCalculatingCheckSum = ignoreCarriageReturnsWhenCalculatingCheckSum;
 
-        Properties customProperties = getCustomProperties(scriptLocation);
-        overrideValuesWithCustomConfiguration(customProperties);
+        //Properties customProperties = getCustomProperties(scriptLocation);
+        this.OverrideProperties = getCustomProperties(scriptLocation); 
+        overrideValuesWithCustomConfiguration(this.OverrideProperties);
 
         this.scriptLocationName = scriptLocation.getAbsolutePath();
         this.scriptFactory = createScriptFactory();
@@ -175,6 +178,11 @@ abstract public class ScriptLocation {
     public Set<String> getScriptFileExtensions() {
         return scriptFileExtensions;
     }
+    
+
+    public Properties getOverrideProperties() {
+		return OverrideProperties;
+	}
 
     /**
      * @return The scripts from this location as a sorted set
