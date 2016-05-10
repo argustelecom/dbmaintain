@@ -43,6 +43,7 @@ public class FileExtensionDispatcher implements ScriptRunner {
     protected Databases databases;
     protected SQLHandler sqlHandler;
     protected Properties configuration;
+    protected Properties scriptParameters;
     protected String sqlLoaderCommand;
     protected String sqlPlusCommand;
     protected String chmodCommand;
@@ -52,10 +53,12 @@ public class FileExtensionDispatcher implements ScriptRunner {
     public FileExtensionDispatcher(Databases databases, 
             SQLHandler sqlHandler,
             final Properties configuration,
+            final Properties scriptParameters,
             Map<String, ScriptParserFactory> databaseDialectScriptParserFactoryMap) {
         this.databases = databases;
         this.sqlHandler = sqlHandler;
         this.configuration = configuration;
+        this.scriptParameters = scriptParameters;
         this.sqlLoaderCommand = PropertyUtils.getString(PROPERTY_SQL_LOADER_COMMAND, configuration);
         this.sqlPlusCommand = PropertyUtils.getString(PROPERTY_SQL_PLUS_COMMAND, configuration);
         this.chmodCommand = PropertyUtils.getString(PROPERTY_CHMOD_COMMAND, configuration);
@@ -72,7 +75,7 @@ public class FileExtensionDispatcher implements ScriptRunner {
             runner = new ShellScriptRunner(databases, chmodCommand);
         }
         else if (script.getFileName().matches("^.*\\.(sqlplus)$")) {
-        	runner = new SqlPlusScriptRunner(databases, configuration, sqlPlusCommand);
+        	runner = new SqlPlusScriptRunner(databases, configuration, scriptParameters , sqlPlusCommand);
         }
         else if (script.getFileName().matches("^.*\\.(xml)$")) {
         	runner = new LoadXMLScriptRunner(databases, sqlHandler, loadXMLFunction);

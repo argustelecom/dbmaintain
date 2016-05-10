@@ -17,12 +17,16 @@ package org.dbmaintain.script.runner.impl;
 
 import static java.lang.System.currentTimeMillis;
 import static org.apache.commons.lang3.StringUtils.deleteWhitespace;
-import static org.dbmaintain.config.DbMaintainProperties.*;
+import static org.dbmaintain.config.DbMaintainProperties.PROPERTY_SCRIPT_ENCODING;
+import static org.dbmaintain.config.DbMaintainProperties.PROPERTY_SQL_PLUS_POST_SCRIPT_FILE_PATH;
+import static org.dbmaintain.config.DbMaintainProperties.PROPERTY_SQL_PLUS_PRE_SCRIPT_FILE_PATH;
 import static org.dbmaintain.util.FileUtils.createFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,6 +39,8 @@ import org.dbmaintain.database.Database;
 import org.dbmaintain.database.DatabaseInfo;
 import org.dbmaintain.database.Databases;
 import org.dbmaintain.script.Script;
+import org.dbmaintain.script.parser.ScriptParser;
+import org.dbmaintain.script.parser.impl.StatementBuilder;
 import org.dbmaintain.util.DbMaintainException;
 
 /**
@@ -51,11 +57,14 @@ public class SqlPlusScriptRunner extends BaseNativeScriptRunner {
     protected Application application;
     protected String sqlPlusCommand;
     private Properties configuration;
+    private Properties scriptParameters;
 
-    public SqlPlusScriptRunner(final Databases databases, final Properties configuration, final String sqlPlusCommand) {
+    public SqlPlusScriptRunner(final Databases databases, final Properties configuration, final Properties scriptParameters, final String sqlPlusCommand) {
         super(databases);
         this.configuration = configuration;
+        this.scriptParameters = scriptParameters;
         this.sqlPlusCommand = sqlPlusCommand;
+        
         application = createApplication(sqlPlusCommand);
     }
 
@@ -91,24 +100,28 @@ public class SqlPlusScriptRunner extends BaseNativeScriptRunner {
         final String scriptEncoding = PropertyUtils.getString(PROPERTY_SCRIPT_ENCODING, getConfiguration());
         final String lineSeparator = System.getProperty("line.separator");
         final StringBuilder content = new StringBuilder();
+
+        content.append("set echo off").append(lineSeparator);
+        content.append("whenever sqlerror exit sql.sqlcode rollback").append(lineSeparator);
+        content.append("whenever oserror exit sql.sqlcode rollback").append(lineSeparator);
+        content.append("connect ").append(databaseInfo.getUserName()).append('/').append(databaseInfo.getPassword()).append('@').append(getDatabaseConfigFromJdbcUrl(databaseInfo.getUrl())).append(lineSeparator);
+        content.append("alter session set current_schema=").append(databaseInfo.getDefaultSchemaName()).append(";").append(lineSeparator);
+        content.append("alter session set ddl_lock_timeout=30;").append(lineSeparator);
+        content.append("set echo on").append(lineSeparator);
+        
+        // определяем все известные параметры для возможности их использования в SQLPlus скрипте
+        if (scriptParameters != null){
+        	for (Entry<Object, Object> entry : scriptParameters.entrySet()) {
+        		// в SQLPlus передаем только параметры без точек и прочих спецсимоволов 
+                if (Pattern.matches("(\\w+)",entry.getKey().toString())) {
+                	content.append("DEFINE ").append(entry.getKey()).append("=\"").append(entry.getValue()).append("\"").append(lineSeparator);
+                }
+        	}
+        }
+        
         // if property set use custom wrapper script
         if (PropertyUtils.containsProperty(PROPERTY_SQL_PLUS_PRE_SCRIPT_FILE_PATH, getConfiguration())) {
             // connect to DB
-            content.append(lineSeparator);
-            content.append("connect ");
-            content.append(databaseInfo.getUserName());
-            content.append('/');
-            content.append(databaseInfo.getPassword());
-            content.append('@');
-            content.append(getDatabaseConfigFromJdbcUrl(databaseInfo.getUrl()));
-            content.append(lineSeparator);
-            content.append("alter session set current_schema=");
-            content.append(databaseInfo.getDefaultSchemaName());
-            content.append(";");            
-            content.append(lineSeparator);
-            content.append("alter session set ddl_lock_timeout=30;");               
-            content.append(lineSeparator);
-
             // read content from custom script file
             final String preScriptFilePath = PropertyUtils.getString(PROPERTY_SQL_PLUS_PRE_SCRIPT_FILE_PATH, getConfiguration());
             @SuppressWarnings("unchecked")
@@ -116,32 +129,10 @@ public class SqlPlusScriptRunner extends BaseNativeScriptRunner {
             for (final String line : lines) {
                 content.append(line).append(lineSeparator);
             }
-        } else {
-            content.append("set echo off");
-            content.append(lineSeparator);
-            content.append("whenever sqlerror exit sql.sqlcode rollback");
-            content.append(lineSeparator);
-            content.append("whenever oserror exit sql.sqlcode rollback");
-            content.append(lineSeparator);
-            content.append("connect ");
-            content.append(databaseInfo.getUserName());
-            content.append('/');
-            content.append(databaseInfo.getPassword());
-            content.append('@');
-            content.append(getDatabaseConfigFromJdbcUrl(databaseInfo.getUrl()));
-            content.append(lineSeparator);
-            content.append("alter session set current_schema=");
-            content.append(databaseInfo.getDefaultSchemaName());
-            content.append(";");
-            content.append(lineSeparator);
-            content.append("alter session set ddl_lock_timeout=30;");               
-            content.append(lineSeparator);
-            content.append("set echo on");
-            content.append(lineSeparator);
         }
-        content.append("@@");
-        content.append(targetScriptFile.getName());
-        content.append(lineSeparator);
+        
+        content.append("@@").append(targetScriptFile.getName()).append(lineSeparator);
+        
         if (PropertyUtils.containsProperty(PROPERTY_SQL_PLUS_POST_SCRIPT_FILE_PATH, getConfiguration())) {
             // read content from custom script file
             final String postScriptFilePath = PropertyUtils.getString(PROPERTY_SQL_PLUS_POST_SCRIPT_FILE_PATH, getConfiguration());
@@ -151,10 +142,10 @@ public class SqlPlusScriptRunner extends BaseNativeScriptRunner {
                 content.append(line).append(lineSeparator);
             }
             content.append(lineSeparator);
-        } else {
-            content.append("exit sql.sqlcode");
-            content.append(lineSeparator);
         }
+        
+        content.append("exit sql.sqlcode").append(lineSeparator);
+        
         createFile(temporaryScriptWrapperFile, content.toString(), scriptEncoding);
         return temporaryScriptWrapperFile;
     }
@@ -186,4 +177,9 @@ public class SqlPlusScriptRunner extends BaseNativeScriptRunner {
     private Properties getConfiguration() {
         return configuration;
     }
+    
+    private void init() {
+		// TODO Auto-generated method stub
+
+	}
 }
