@@ -104,7 +104,7 @@ public class FactoryWithDatabaseContext extends FactoryContext {
         return databaseDialectScriptParserClassMap;
     }
 
-    protected Properties getScriptParameters() {
+    public Properties getScriptParameters() {
         String scriptParameterFile = PropertyUtils.getString(PROPERTY_SCRIPT_PARAMETER_FILE, null, getConfiguration());
         try {
             Properties scriptParameters = null;

@@ -37,6 +37,10 @@ public abstract class FactoryWithDatabase<T> implements Factory<T> {
         return factoryWithDatabaseContext.getConfiguration();
     }
 
+    public Properties getScriptParameters() {
+        return factoryWithDatabaseContext.getScriptParameters();
+    }
+
     public Databases getDatabases() {
         return factoryWithDatabaseContext.getDatabases();
     }

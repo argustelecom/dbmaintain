@@ -31,6 +31,6 @@ public class FileExtensionDispatcherFactory extends FactoryWithDatabase<ScriptRu
     
     public ScriptRunner createInstance() {
         Map<String, ScriptParserFactory> databaseDialectScriptParserFactoryMap = factoryWithDatabaseContext.getDatabaseDialectScriptParserFactoryMap();
-        return new FileExtensionDispatcher(getDatabases(), getSqlHandler(),  getConfiguration(), databaseDialectScriptParserFactoryMap);
+        return new FileExtensionDispatcher(getDatabases(), getSqlHandler(),  getConfiguration(), getScriptParameters(), databaseDialectScriptParserFactoryMap);
     }
 }
