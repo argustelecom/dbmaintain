@@ -42,6 +42,7 @@ dependency-reduced-pom.xml
 .project
 *.pydevproject
 .metadata
+.recommenders
 .gradle
 bin/
 tmp/

@@ -69,6 +69,7 @@
                             <include>commons-dbutils:commons-dbutils</include>
                             <include>commons-io:commons-io</include>
                             <include>commons-logging:commons-logging</include>
+                            <include>log4j:log4j</include>
                         </includes>
                     </artifactSet>
                     <relocations>
@@ -87,6 +88,10 @@
                         <relocation>
                             <pattern>org.apache.commons.logging</pattern>
                             <shadedPattern>thirdparty.org.apache.commons.logging</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.apache.log4j</pattern>
+                            <shadedPattern>org.apache.log4j</shadedPattern>
                         </relocation>
                     </relocations>
                     <minimizeJar>false</minimizeJar>
@@ -135,6 +140,10 @@
             <groupId>ant</groupId>
             <artifactId>ant</artifactId>
         </dependency>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+        </dependency>
 
         <!-- Test dependencies -->
         <dependency>
@@ -152,10 +161,5 @@
             <artifactId>hsqldb</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-        </dependency>
     </dependencies>
-
 </project>
