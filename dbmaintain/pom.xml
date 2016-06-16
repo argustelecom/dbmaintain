@@ -101,20 +101,35 @@
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>2.5.5</version>
                 <configuration>
-                    <descriptors>
-                        <descriptor>src/main/assembly/dbmaintain.xml</descriptor>
-                    </descriptors>
                     <appendAssemblyId>false</appendAssemblyId>
                 </configuration>
                 <executions>
                     <execution>
                         <id>make-assembly</id> <!-- this is used for inheritance merges -->
                         <phase>package</phase> <!-- bind to the packaging phase -->
+                        <configuration>
+                            <descriptor>src/main/assembly/dbmaintain.xml</descriptor>
+                        </configuration>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>make-commandline</id>
+                        <phase>package</phase>
+                        <configuration>
+                            <descriptor>src/main/assembly/commandline.xml</descriptor>
+                            <finalName>dbmaintain-cmd-${project.version}</finalName>
+                        </configuration>
                         <goals>
                             <goal>single</goal>
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-deploy-plugin</artifactId> 
+                <version>2.8.2</version> 
             </plugin>
         </plugins>
     </build>
