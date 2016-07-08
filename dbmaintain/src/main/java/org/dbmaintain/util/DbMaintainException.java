@@ -15,6 +15,10 @@
  */
 package org.dbmaintain.util;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.dbmaintain.DefaultDbMaintainer;
+
 
 /**
  * @author Filip Neven
@@ -22,6 +26,8 @@ package org.dbmaintain.util;
  */
 public class DbMaintainException extends RuntimeException {
 
+	 /* The logger instance for this class */
+    private static Log logger = LogFactory.getLog(DefaultDbMaintainer.class);
     /**
      * Constructor for DbMaintainException.
      */
@@ -37,6 +43,7 @@ public class DbMaintainException extends RuntimeException {
      */
     public DbMaintainException(String message, Throwable cause) {
         super(message, cause);
+    	logger.error(message, cause);
     }
 
     /**
@@ -46,6 +53,7 @@ public class DbMaintainException extends RuntimeException {
      */
     public DbMaintainException(String message) {
         super(message);
+        logger.error(message);
     }
 
     /**
