@@ -15,12 +15,16 @@
  */
 package org.dbmaintain.script.analyzer;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.dbmaintain.DefaultDbMaintainer;
 import org.dbmaintain.script.ExecutedScript;
 import org.dbmaintain.script.Script;
 import org.dbmaintain.script.executedscriptinfo.ExecutedScriptInfoSource;
 import org.dbmaintain.script.repository.ScriptRepository;
 
 import java.util.*;
+import java.util.logging.Logger;
 
 import static org.dbmaintain.script.analyzer.ScriptUpdateType.*;
 
@@ -61,6 +65,8 @@ public class ScriptUpdatesAnalyzer {
     private boolean ignoreDeletions; // Ignore if the db state is newer, i.e. there are allready
                                      // successor skripts in the database
 
+    /* The logger instance for this class */
+    private static Log logger = LogFactory.getLog(DefaultDbMaintainer.class);
     /**
      * Creates a new instance that will compare the info from the given {@link ExecutedScriptInfoSource} with the current
      * scripts from the given {@link org.dbmaintain.script.repository.ScriptRepository}. It also needs to know whether a new patch script with a lower
@@ -134,11 +140,12 @@ public class ScriptUpdatesAnalyzer {
 
             // If the sequence of the indexed scripts changed, all indexed script renames are registered as irregular
             // script renames. If it didn't change, all indexed script renames are registered as regular script renames
-            if (sequenceOfIndexedScriptsChangedDueToRenames()) {
-                registerIrregularIncrementalScriptRenames();
-            } else {
-                registerRegularIncrementalScriptRenames();
-            }
+            //Killian: strange logic. versions compared not by  ScriptIndexes but by strange function
+            //if (sequenceOfIndexedScriptsChangedDueToRenames()) {
+            //    registerIrregularIncrementalScriptRenames();
+            //} else {
+            //    registerRegularIncrementalScriptRenames();
+            //}
         }
 
         // Look for newly added scripts. A script is new if it's not mapped to an executed script in the scriptExecuteScriptMap,
@@ -236,6 +243,19 @@ public class ScriptUpdatesAnalyzer {
         if (executedScript.getScript().isIncremental() && renamedTo.isIncremental()) {
             scriptExecutedScriptMap.put(renamedTo, executedScript);
             renamedIndexedScripts.put(executedScript, renamedTo);
+
+            if (executedScript.getScript().getScriptIndexes().compareTo(renamedTo.getScriptIndexes()) == 0) {
+            	registerRegularScriptRename(ScriptUpdateType.INDEXED_SCRIPT_RENAMED, executedScript.getScript(), renamedTo);
+            }
+            else{
+            	logger.error("Script " + executedScript.getScript().getFileName() 
+            			+ " (newname: " + renamedTo.getFileName() 
+            			+ ") version differ: "
+            			+ executedScript.getScript().getScriptIndexes().getIndexesString() 
+            			+ " vs " 
+            			+ renamedTo.getScriptIndexes().getIndexesString());
+            	registerIrregularScriptUpdate(ScriptUpdateType.INDEXED_SCRIPT_RENAMED_SCRIPT_SEQUENCE_CHANGED, executedScript.getScript(), renamedTo);
+            } 
         } else if (executedScript.getScript().isRepeatable() && renamedTo.isRepeatable()) {
             scriptExecutedScriptMap.put(renamedTo, executedScript);
             registerRegularScriptRename(REPEATABLE_SCRIPT_RENAMED, executedScript.getScript(), renamedTo);
