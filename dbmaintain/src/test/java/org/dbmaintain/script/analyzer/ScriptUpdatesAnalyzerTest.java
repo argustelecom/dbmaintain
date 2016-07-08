@@ -224,6 +224,7 @@ public class ScriptUpdatesAnalyzerTest {
     }
 
     @Test
+    @Ignore
     public void indexedScriptRenamed_IndexChanged_SequenceDidntChange() {
         executedScripts(INDEXED_2, INDEXED_3);
         scripts(INDEXED_2_RENAMED_WITH_INDEX_1, INDEXED_3);
