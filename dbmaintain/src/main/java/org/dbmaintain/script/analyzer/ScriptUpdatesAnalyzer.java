@@ -24,6 +24,7 @@ import org.dbmaintain.script.executedscriptinfo.ExecutedScriptInfoSource;
 import org.dbmaintain.script.repository.ScriptRepository;
 
 import java.util.*;
+import java.util.logging.Logger;
 
 import static org.dbmaintain.script.analyzer.ScriptUpdateType.*;
 
@@ -38,47 +39,48 @@ import static org.dbmaintain.script.analyzer.ScriptUpdateType.*;
  */
 public class ScriptUpdatesAnalyzer {
 
-    private static final String ARGUS_MAGIC_TEXT = "-- I have read and understand the implications of changing the incremental script";
-    private static final int ARGUS_MAGIC_TEXT_LENGTH = ARGUS_MAGIC_TEXT.length();
-
-
-    /* The logger instance for this class */
-    private static Log logger = LogFactory.getLog(DefaultDbMaintainer.class);
     /* Initialization data */
     private final ScriptRepository scriptRepository;
     private final ExecutedScriptInfoSource executedScriptInfoSource;
     private final boolean useScriptFileLastModificationDates;
     private final boolean allowOutOfSequenceExecutionOfPatchScripts;
+
     /* Sets that contain the result of the analysis: each set contains a specific type of script updates */
-    private final SortedSet<ScriptUpdate> regularlyAddedOrModifiedScripts = new TreeSet<>();
-    private final SortedSet<ScriptUpdate> irregularlyUpdatedScripts = new TreeSet<>();
-    private final SortedSet<ScriptUpdate> regularlyDeletedRepeatableScripts = new TreeSet<>();
-    private final SortedSet<ScriptUpdate> regularlyAddedPatchScripts = new TreeSet<>();
-    private final SortedSet<ScriptUpdate> regularlyUpdatedPreprocessingScripts = new TreeSet<>();
-    private final SortedSet<ScriptUpdate> regularlyUpdatedPostprocessingScripts = new TreeSet<>();
-    private final SortedSet<ScriptUpdate> regularlyRenamedScripts = new TreeSet<>();
-    private final SortedSet<ScriptUpdate> ignoredScripts = new TreeSet<>();
+    private final SortedSet<ScriptUpdate> regularlyAddedOrModifiedScripts = new TreeSet<ScriptUpdate>();
+    private final SortedSet<ScriptUpdate> irregularlyUpdatedScripts = new TreeSet<ScriptUpdate>();
+    private final SortedSet<ScriptUpdate> regularlyDeletedRepeatableScripts = new TreeSet<ScriptUpdate>();
+    private final SortedSet<ScriptUpdate> regularlyAddedPatchScripts = new TreeSet<ScriptUpdate>();
+    private final SortedSet<ScriptUpdate> regularlyUpdatedPreprocessingScripts = new TreeSet<ScriptUpdate>();
+    private final SortedSet<ScriptUpdate> regularlyUpdatedPostprocessingScripts = new TreeSet<ScriptUpdate>();
+    private final SortedSet<ScriptUpdate> regularlyRenamedScripts = new TreeSet<ScriptUpdate>();
+    private final SortedSet<ScriptUpdate> ignoredScripts = new TreeSet<ScriptUpdate>();
+
     /* Sets that contain working data that is assembled during the analysis */
-    private final Map<ExecutedScript, Script> renamedIndexedScripts = new HashMap<>();
-    private final Map<Script, ExecutedScript> scriptExecutedScriptMap = new HashMap<>();
+    private final Map<ExecutedScript, Script> renamedIndexedScripts = new HashMap<ExecutedScript, Script>();
+    private final Map<Script, ExecutedScript> scriptExecutedScriptMap = new HashMap<Script, ExecutedScript>();
+
     /* Lazily initialized data, that is cached during analysis to avoid repeated calculation of the contents */
     private Map<String, Script> scriptNameScriptMap;
     private Map<String, Set<Script>> checkSumScriptMap;
-    // successor skripts in the database
     private boolean ignoreDeletions; // Ignore if the db state is newer, i.e. there are allready
+                                     // successor skripts in the database
 
+    /* The logger instance for this class */
+    private static Log logger = LogFactory.getLog(DefaultDbMaintainer.class);
     /**
      * Creates a new instance that will compare the info from the given {@link ExecutedScriptInfoSource} with the current
      * scripts from the given {@link org.dbmaintain.script.repository.ScriptRepository}. It also needs to know whether a new patch script with a lower
      * index is a regular or irregular script update
      *
-     * @param scriptRepository                          exposes the current set of scripts
-     * @param executedScriptInfoSource                  provides info on the script that were executed on the database
-     * @param useScriptFileLastModificationDates        whether the last modification date of the scripts can be used to determine if a script has changed.
-     * @param allowOutOfSequenceExecutionOfPatchScripts whether scripts marked as patch scripts may be executed out-of-sequence
+     * @param scriptRepository         exposes the current set of scripts
+     * @param executedScriptInfoSource provides info on the script that were executed on the database
+     * @param useScriptFileLastModificationDates
+     *                                 whether the last modification date of the scripts can be used to determine if a script has changed.
+     * @param allowOutOfSequenceExecutionOfPatchScripts
+     *                                 whether scripts marked as patch scripts may be executed out-of-sequence
      */
     public ScriptUpdatesAnalyzer(ScriptRepository scriptRepository, ExecutedScriptInfoSource executedScriptInfoSource,
-                                 boolean useScriptFileLastModificationDates, boolean allowOutOfSequenceExecutionOfPatchScripts, boolean ignoreDeletions) {
+            boolean useScriptFileLastModificationDates, boolean allowOutOfSequenceExecutionOfPatchScripts, boolean ignoreDeletions) {
         this.scriptRepository = scriptRepository;
         this.executedScriptInfoSource = executedScriptInfoSource;
         this.useScriptFileLastModificationDates = useScriptFileLastModificationDates;
@@ -92,7 +94,7 @@ public class ScriptUpdatesAnalyzer {
      * whether it is a regular or irregular one.
      *
      * @return {@link org.dbmaintain.script.analyzer.ScriptUpdates} object that represents all updates that were performed to the scripts since the last
-     * database update
+     *         database update
      */
     public ScriptUpdates calculateScriptUpdates() {
         // Iterate over the already executed scripts to find out whether the contents of some scripts has been modified
@@ -104,18 +106,12 @@ public class ScriptUpdatesAnalyzer {
                 // The script with this name still exists. We keep the mapping in the scriptExecutedScriptMap
                 scriptExecutedScriptMap.put(scriptWithSameName, executedScript);
                 // Check if the content didn't change
-
-
-                final Script script = executedScript.getScript();
-                if (!script.isScriptContentEqualTo(scriptWithSameName, useScriptFileLastModificationDates)) {
+                if (!executedScript.getScript().isScriptContentEqualTo(scriptWithSameName, useScriptFileLastModificationDates)) {
                     registerScriptUpdate(scriptWithSameName);
-                } else if (script.isIncremental() &&
-                        Objects.equals(ARGUS_MAGIC_TEXT, script.getScriptContentHandle().getScriptContentsAsString(ARGUS_MAGIC_TEXT_LENGTH))) {
-                    registerScriptRename(executedScript, script);
-                } else if (!executedScript.isSuccessful() && script.isPostProcessingScript()) {
+                } else if (!executedScript.isSuccessful() && executedScript.getScript().isPostProcessingScript()) {
                     registerPostprocessingScriptUpdate(POSTPROCESSING_SCRIPT_FAILURE_RERUN, scriptWithSameName);
-                } else if (!executedScript.isSuccessful() && script.isPreProcessingScript()) {
-                    registerPreprocessingScriptUpdate(PREPROCESSING_SCRIPT_FAILURE_RERUN, scriptWithSameName);
+                } else if (!executedScript.isSuccessful() && executedScript.getScript().isPreProcessingScript()) {
+                	registerPreprocessingScriptUpdate(PREPROCESSING_SCRIPT_FAILURE_RERUN, scriptWithSameName);
                 }
             }
         }
@@ -180,8 +176,8 @@ public class ScriptUpdatesAnalyzer {
             if (scriptWithHighestScriptIndex == null || script.compareTo(scriptWithHighestScriptIndex) > 0) {
                 registerRegularScriptUpdate(HIGHER_INDEX_SCRIPT_ADDED, script);
             } else {
-                // ARGUS fix. add or statement. cause it's LOWER INDEX is normal )
-                if (script.isPatchScript() || allowOutOfSequenceExecutionOfPatchScripts) {
+            	// ARGUS fix. add or statement. cause it's LOWER INDEX is normal ) 
+                if (script.isPatchScript() || allowOutOfSequenceExecutionOfPatchScripts ) {
                     if (allowOutOfSequenceExecutionOfPatchScripts) {
                         registerRegularlyAddedPatchScript(LOWER_INDEX_PATCH_SCRIPT_ADDED, script);
                     } else {
@@ -194,7 +190,7 @@ public class ScriptUpdatesAnalyzer {
         } else if (script.isRepeatable()) {
             registerRegularScriptUpdate(REPEATABLE_SCRIPT_ADDED, script);
         } else if (script.isPreProcessingScript()) {
-            registerPreprocessingScriptUpdate(PREPROCESSING_SCRIPT_ADDED, script);
+        	registerPreprocessingScriptUpdate(PREPROCESSING_SCRIPT_ADDED, script);
         } else if (script.isPostProcessingScript()) {
             registerPostprocessingScriptUpdate(POSTPROCESSING_SCRIPT_ADDED, script);
         }
@@ -212,7 +208,7 @@ public class ScriptUpdatesAnalyzer {
         } else if (script.isRepeatable()) {
             registerRegularScriptUpdate(REPEATABLE_SCRIPT_UPDATED, script);
         } else if (script.isPreProcessingScript()) {
-            registerPreprocessingScriptUpdate(PREPROCESSING_SCRIPT_UPDATED, script);
+        	registerPreprocessingScriptUpdate(PREPROCESSING_SCRIPT_UPDATED, script);
         } else if (script.isPostProcessingScript()) {
             registerPostprocessingScriptUpdate(POSTPROCESSING_SCRIPT_UPDATED, script);
         }
@@ -230,7 +226,7 @@ public class ScriptUpdatesAnalyzer {
         } else if (deletedScript.isRepeatable()) {
             registerRepeatableScriptDeletion(deletedScript);
         } else if (deletedScript.isPreProcessingScript()) {
-            registerPreprocessingScriptUpdate(PREPROCESSING_SCRIPT_DELETED, deletedScript);
+        	registerPreprocessingScriptUpdate(PREPROCESSING_SCRIPT_DELETED, deletedScript);
         } else if (deletedScript.isPostProcessingScript()) {
             registerPostprocessingScriptUpdate(POSTPROCESSING_SCRIPT_DELETED, deletedScript);
         }
@@ -244,38 +240,38 @@ public class ScriptUpdatesAnalyzer {
      * @param renamedTo      The renamed script
      */
     protected void registerScriptRename(ExecutedScript executedScript, Script renamedTo) {
-        final Script script = executedScript.getScript();
-        if (script.isIncremental() && renamedTo.isIncremental()) {
+        if (executedScript.getScript().isIncremental() && renamedTo.isIncremental()) {
             scriptExecutedScriptMap.put(renamedTo, executedScript);
             renamedIndexedScripts.put(executedScript, renamedTo);
 
-            if (script.getScriptIndexes().compareTo(renamedTo.getScriptIndexes()) == 0) {
-                registerRegularScriptRename(ScriptUpdateType.INDEXED_SCRIPT_RENAMED, script, renamedTo);
-            } else {
-                logger.error("Script " + script.getFileName()
-                        + " (newname: " + renamedTo.getFileName()
-                        + ") version differ: "
-                        + script.getScriptIndexes().getIndexesString()
-                        + " vs "
-                        + renamedTo.getScriptIndexes().getIndexesString());
-                registerIrregularScriptUpdate(ScriptUpdateType.INDEXED_SCRIPT_RENAMED_SCRIPT_SEQUENCE_CHANGED, script, renamedTo);
+            if (executedScript.getScript().getScriptIndexes().compareTo(renamedTo.getScriptIndexes()) == 0) {
+            	registerRegularScriptRename(ScriptUpdateType.INDEXED_SCRIPT_RENAMED, executedScript.getScript(), renamedTo);
             }
-        } else if (script.isRepeatable() && renamedTo.isRepeatable()) {
+            else{
+            	logger.error("Script " + executedScript.getScript().getFileName() 
+            			+ " (newname: " + renamedTo.getFileName() 
+            			+ ") version differ: "
+            			+ executedScript.getScript().getScriptIndexes().getIndexesString() 
+            			+ " vs " 
+            			+ renamedTo.getScriptIndexes().getIndexesString());
+            	registerIrregularScriptUpdate(ScriptUpdateType.INDEXED_SCRIPT_RENAMED_SCRIPT_SEQUENCE_CHANGED, executedScript.getScript(), renamedTo);
+            } 
+        } else if (executedScript.getScript().isRepeatable() && renamedTo.isRepeatable()) {
             scriptExecutedScriptMap.put(renamedTo, executedScript);
-            registerRegularScriptRename(REPEATABLE_SCRIPT_RENAMED, script, renamedTo);
-        } else if (script.isPreProcessingScript() && renamedTo.isPreProcessingScript()) {
+            registerRegularScriptRename(REPEATABLE_SCRIPT_RENAMED, executedScript.getScript(), renamedTo);
+        } else if (executedScript.getScript().isPreProcessingScript() && renamedTo.isPreProcessingScript()) {
+        	scriptExecutedScriptMap.put(renamedTo, executedScript);
+            registerPreprocessingScriptRename(PREPROCESSING_SCRIPT_RENAMED, executedScript.getScript(), renamedTo);
+        } else if (executedScript.getScript().isPostProcessingScript() && renamedTo.isPostProcessingScript()) {
             scriptExecutedScriptMap.put(renamedTo, executedScript);
-            registerPreprocessingScriptRename(PREPROCESSING_SCRIPT_RENAMED, script, renamedTo);
-        } else if (script.isPostProcessingScript() && renamedTo.isPostProcessingScript()) {
-            scriptExecutedScriptMap.put(renamedTo, executedScript);
-            registerPostprocessingScriptRename(POSTPROCESSING_SCRIPT_RENAMED, script, renamedTo);
+            registerPostprocessingScriptRename(POSTPROCESSING_SCRIPT_RENAMED, executedScript.getScript(), renamedTo);
         }
     }
 
 
     /**
      * @return whether the sequence of the indexed scripts has changed due to indexed scripts that were renamed since
-     * the last update
+     *         the last update
      */
     protected boolean sequenceOfIndexedScriptsChangedDueToRenames() {
         Iterator<Script> indexedScriptsIterator = scriptRepository.getIndexedScripts().iterator();
@@ -324,7 +320,7 @@ public class ScriptUpdatesAnalyzer {
      * @return A script that is not yet mapped to an executed script, but that has the same content as the given one
      */
     protected Script findNewScriptWithSameContent(ExecutedScript executedScript) {
-        SortedSet<Script> newScriptsWithSameContent = new TreeSet<>();
+        SortedSet<Script> newScriptsWithSameContent = new TreeSet<Script>();
         Set<Script> scriptsWithSameContent = getCheckSumScriptMap().get(executedScript.getScript().getCheckSum());
         if (scriptsWithSameContent != null) {
             for (Script scriptWithSameContent : scriptsWithSameContent) {
@@ -351,7 +347,7 @@ public class ScriptUpdatesAnalyzer {
      * @return The already executed scripts, as a map from scriptName => ExecutedScript
      */
     protected Map<String, ExecutedScript> getScriptNameExecutedScriptMap() {
-        Map<String, ExecutedScript> scriptNameAlreadyExecutedScriptMap = new HashMap<>();
+        Map<String, ExecutedScript> scriptNameAlreadyExecutedScriptMap = new HashMap<String, ExecutedScript>();
         for (ExecutedScript executedScript : executedScriptInfoSource.getExecutedScripts()) {
             scriptNameAlreadyExecutedScriptMap.put(executedScript.getScript().getFileName(), executedScript);
         }
@@ -363,7 +359,7 @@ public class ScriptUpdatesAnalyzer {
      */
     protected Map<String, Script> getScriptNameScriptMap() {
         if (scriptNameScriptMap == null) {
-            scriptNameScriptMap = new HashMap<>();
+            scriptNameScriptMap = new HashMap<String, Script>();
             for (Script script : scriptRepository.getAllScripts()) {
                 scriptNameScriptMap.put(script.getFileName(), script);
             }
@@ -376,9 +372,13 @@ public class ScriptUpdatesAnalyzer {
      */
     protected Map<String, Set<Script>> getCheckSumScriptMap() {
         if (checkSumScriptMap == null) {
-            checkSumScriptMap = new HashMap<>();
+            checkSumScriptMap = new HashMap<String, Set<Script>>();
             for (Script script : scriptRepository.getAllScripts()) {
-                Set<Script> scriptsWithCheckSum = checkSumScriptMap.computeIfAbsent(script.getCheckSum(), k -> new HashSet<>());
+                Set<Script> scriptsWithCheckSum = checkSumScriptMap.get(script.getCheckSum());
+                if (scriptsWithCheckSum == null) {
+                    scriptsWithCheckSum = new HashSet<Script>();
+                    checkSumScriptMap.put(script.getCheckSum(), scriptsWithCheckSum);
+                }
                 scriptsWithCheckSum.add(script);
             }
         }
@@ -426,7 +426,7 @@ public class ScriptUpdatesAnalyzer {
 
 
     protected void registerPreprocessingScriptUpdate(ScriptUpdateType scriptUpdateType, Script script) {
-        regularlyUpdatedPreprocessingScripts.add(new ScriptUpdate(scriptUpdateType, script));
+    	regularlyUpdatedPreprocessingScripts.add(new ScriptUpdate(scriptUpdateType, script));
     }
 
     protected void registerPostprocessingScriptUpdate(ScriptUpdateType scriptUpdateType, Script script) {
@@ -435,7 +435,7 @@ public class ScriptUpdatesAnalyzer {
 
 
     protected void registerPreprocessingScriptRename(ScriptUpdateType scriptUpdateType, Script originalScript, Script renamedToScript) {
-        regularlyUpdatedPreprocessingScripts.add(new ScriptUpdate(scriptUpdateType, originalScript, renamedToScript));
+    	regularlyUpdatedPreprocessingScripts.add(new ScriptUpdate(scriptUpdateType, originalScript, renamedToScript));
     }
 
     protected void registerPostprocessingScriptRename(ScriptUpdateType scriptUpdateType, Script originalScript, Script renamedToScript) {
