@@ -102,7 +102,7 @@ public abstract class ScriptContentHandle {
     }
 
 
-    public String getScriptContentsAsString(long maxNrChars) {
+    public String getScriptContentsAsString(long maxNrChars, boolean addPostFix) {
         try {
             InputStream inputStream = this.getScriptInputStream();
             try {
@@ -113,7 +113,9 @@ public abstract class ScriptContentHandle {
                 while ((c = bufferedReader.read()) != -1) {
                     stringWriter.write(c);
                     if (++count >= maxNrChars) {
-                        stringWriter.write("... <remainder of script is omitted>");
+                    	if (addPostFix) {
+                    		stringWriter.write("... <remainder of script is omitted>");
+                    	}
                         break;
                     }
                 }
@@ -124,6 +126,10 @@ public abstract class ScriptContentHandle {
         } catch (IOException e) {
             return "<script content could not be retrieved>";
         }
+    }
+
+    public String getScriptContentsAsString(long maxNrChars) {
+        return getScriptContentsAsString(maxNrChars, true);
     }
 
     protected String getHexPresentation(byte[] byteArray) {
