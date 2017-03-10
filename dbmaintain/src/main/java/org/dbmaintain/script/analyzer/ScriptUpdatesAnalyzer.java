@@ -110,6 +110,7 @@ public class ScriptUpdatesAnalyzer {
                 if (!script.isScriptContentEqualTo(scriptWithSameName, useScriptFileLastModificationDates)) {
                 	// ARGUS fix. If we have magic text, then just update Incremental script MD5. Cause we fix floating error
                 	if (script.isIncremental() && 
+                			scriptWithSameName.getScriptContentHandle() != null &&
                 			Objects.equals(ARGUS_MAGIC_TEXT, scriptWithSameName.getScriptContentHandle().getScriptContentsAsString(ARGUS_MAGIC_TEXT_LENGTH, false))) {
                         registerScriptRename(executedScript, scriptWithSameName);
                 	} else {                	
