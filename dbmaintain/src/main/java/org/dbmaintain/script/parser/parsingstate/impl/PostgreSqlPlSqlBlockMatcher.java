@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
  */
 public class PostgreSqlPlSqlBlockMatcher implements PlSqlBlockMatcher {
 
-    private static final Pattern PL_SQL_PATTERN = Pattern.compile("^(CREATE (OR REPLACE )?(FUNCTION|RULE)|BEGIN)");
+    private static final Pattern PL_SQL_PATTERN = Pattern.compile("^(CREATE (OR REPLACE )?(FUNCTION|RULE)|BEGIN|DO)");
 
     public boolean isStartOfPlSqlBlock(StringBuilder statementWithoutCommentsOrWhitespace) {
         return PL_SQL_PATTERN.matcher(statementWithoutCommentsOrWhitespace).matches();
