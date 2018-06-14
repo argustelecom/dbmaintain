@@ -167,11 +167,21 @@ public class SqlPlusScriptRunner extends BaseNativeScriptRunner {
     }
 
     protected String getDatabaseConfigFromJdbcUrl(final String url) {
-        final int index = url.indexOf('@');
-        if (index == -1) {
-            return url;
+        String result="";
+        if (url.contains("ldap://")) {
+            for (String str : url.substring(url.lastIndexOf("/") + 1).split(",")) {
+                if (str.contains("=")) {
+                    if (str.startsWith("dc")) {
+                        result = result + "." + str.substring(3);
+                    }
+                } else {
+                    result += str;
+                }
+            }
+        }else{
+            result = url.substring(url.indexOf("@")+1);
         }
-        return url.substring(index + 1);
+        return result;
     }
 
     private Properties getConfiguration() {
