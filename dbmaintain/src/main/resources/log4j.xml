@@ -19,7 +19,7 @@
 	</appender>
 
 	<logger name="org.dbmaintain">
-		<level value="DEBUG" />
+		<level value="INFO" />
 	</logger>
 
 	<root>

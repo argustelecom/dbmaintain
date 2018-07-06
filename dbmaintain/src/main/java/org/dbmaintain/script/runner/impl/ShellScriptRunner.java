@@ -89,11 +89,21 @@ public class ShellScriptRunner extends BaseNativeScriptRunner {
         return new Application("Custom Executable", command);
     }
     
-    protected String getDatabaseConfigFromJdbcUrl(String url) {
-        int index = url.indexOf('@');
-        if (index == -1) {
-            return url;
+    protected String getDatabaseConfigFromJdbcUrl(final String url) {
+        String result="";
+        if (url.contains("ldap://")) {
+            for (String str : url.substring(url.lastIndexOf("/") + 1).split(",")) {
+                if (str.contains("=")) {
+                    if (str.startsWith("dc")) {
+                        result = result + "." + str.substring(3);
+                    }
+                } else {
+                    result += str;
+                }
+            }
+        }else{
+            result = url.substring(url.indexOf("@")+1);
         }
-        return url.substring(index + 1);
+        return result;
     }
 }
