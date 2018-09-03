@@ -17,6 +17,7 @@ package org.dbmaintain.script.runner.impl;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.dbmaintain.config.PropertyUtils;
 import org.dbmaintain.util.DbMaintainException;
 
 import java.io.BufferedReader;
@@ -26,9 +27,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import static java.util.Arrays.asList;
 import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.dbmaintain.config.DbMaintainProperties.PROPERTY_SCRIPT_ENCODING;
 
 /**
  * @author Tim Ducheyne
@@ -60,12 +63,16 @@ public class Application {
     }
 
     public ProcessOutput execute(boolean logCommand, String... arguments) {
+        return execute(logCommand, null, arguments);
+    }
+
+    public ProcessOutput execute(boolean logCommand, Properties configuration, String... arguments) {
         try {
             List<String> commandWithArguments = getProcessArguments(arguments);
 
             ProcessBuilder processBuilder = createProcessBuilder(commandWithArguments);
             Process process = processBuilder.start();
-            OutputProcessor outputProcessor = new OutputProcessor(process);
+            OutputProcessor outputProcessor = new OutputProcessor(process, configuration);
             outputProcessor.start();
             process.waitFor();
 
@@ -132,9 +139,15 @@ public class Application {
 
         private StringBuilder outputStringBuilder = new StringBuilder();
         private Process process;
+        private Properties configuration;
 
         public OutputProcessor(Process process) {
             this.process = process;
+        }
+
+        public OutputProcessor(Process process, Properties configuration) {
+            this.process = process;
+            this.configuration = configuration;
         }
 
         @Override
@@ -152,7 +165,13 @@ public class Application {
         }
 
         protected void appendProcessOutput(Process process) throws IOException {
-            BufferedReader outReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            BufferedReader outReader;
+            if (configuration != null){
+                String scriptEncoding = PropertyUtils.getString(PROPERTY_SCRIPT_ENCODING, configuration);
+                outReader = new BufferedReader(new InputStreamReader(process.getInputStream(), scriptEncoding));
+            } else {
+                outReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            }
             String line;
             while ((line = outReader.readLine()) != null) {
                 if (!isBlank(line)) {
@@ -162,5 +181,6 @@ public class Application {
             }
             outReader.close();
         }
+
     }
 }

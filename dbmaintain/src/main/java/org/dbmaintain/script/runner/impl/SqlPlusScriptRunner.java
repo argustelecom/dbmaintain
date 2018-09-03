@@ -72,7 +72,7 @@ public class SqlPlusScriptRunner extends BaseNativeScriptRunner {
     protected void executeScript(final File scriptFile, final Database targetDatabase) throws Exception {
         final File wrapperScriptFile = generateWrapperScriptFile(targetDatabase.getDatabaseInfo(), scriptFile);
         final String[] arguments = {"/nolog", "@" + wrapperScriptFile.getPath()};
-        final Application.ProcessOutput processOutput = application.execute(arguments);
+        final Application.ProcessOutput processOutput = application.execute(true,configuration,arguments);
         final int exitValue = processOutput.getExitValue();
         boolean error = matchSQLPlusError(processOutput.getOutput());
         // always write sqlplus output to standard out
